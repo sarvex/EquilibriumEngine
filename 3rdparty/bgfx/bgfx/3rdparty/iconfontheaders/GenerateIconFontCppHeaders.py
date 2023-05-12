@@ -88,36 +88,36 @@ class Font:
 	def get_icons( cls, input ):
 		# intermediate representation of the fonts data, identify the min and max
 		print( '[ ERROR - missing implementation of class method get_icons for {!s} ]'.format( cls.font_name ))
-		icons_data = {}
-		icons_data.update({ 'font_min' : '[ ERROR - missing font min ]',
-							'font_max' : '[ ERROR - missing font max ]',
-							'icons' : '[ ERROR - missing list of pairs [ font icon name, code ]]' })
-		return icons_data
+		return dict(
+			{
+				'font_min': '[ ERROR - missing font min ]',
+				'font_max': '[ ERROR - missing font max ]',
+				'icons': '[ ERROR - missing list of pairs [ font icon name, code ]]',
+			}
+		)
 
 	@classmethod
 	def download( cls ):
 		input_raw = ''
 		response = requests.get( cls.font_url_data, timeout = 2 )
-		if response.status_code == 200:
-			input_raw = response.content
-			print( 'Downloaded - ' + cls.font_name )
-		else:
-			raise Exception( 'Download failed - ' + cls.font_name )
+		if response.status_code != 200:
+			raise Exception(f'Download failed - {cls.font_name}')
+		input_raw = response.content
+		print(f'Downloaded - {cls.font_name}')
 		return input_raw
 
 	@classmethod
 	def get_intermediate_representation( cls ):
 		font_ir = {}
-		input_raw = cls.download()
-		if input_raw:
+		if input_raw := cls.download():
 			icons_data = cls.get_icons( input_raw )
-			font_ir.update( icons_data )
+			font_ir |= icons_data
 			font_ir.update({ 'font_url_ttf' : cls.font_url_ttf,
 							 'font_url_data' : cls.font_url_data,
 							 'font_file_name_ttf' : cls.font_file_name_ttf,
 							 'font_name' : cls.font_name,
 							 'font_abbr' : cls.font_abbr })
-			print( 'Generated intermediate data - ' + cls.font_name )
+			print(f'Generated intermediate data - {cls.font_name}')
 		return font_ir
 
 
@@ -129,8 +129,7 @@ class FontFA4( Font ):	# legacy Font Awesome version 4
 	font_file_name_ttf = [[ font_abbr, font_url_ttf[ font_url_ttf.rfind('/')+1: ]]]
 
 	@classmethod
-	def get_icons( self, input ):
-		icons_data = { }
+	def get_icons(cls, input):
 		data = yaml.safe_load(input)
 		font_min = 'ffff'
 		font_max = '0'
@@ -141,10 +140,7 @@ class FontFA4( Font ):	# legacy Font Awesome version 4
 			if item[ 'unicode' ] >= font_max:
 				font_max = item[ 'unicode' ]
 			icons.append([ item[ 'id' ], item[ 'unicode' ]])
-		icons_data.update({ 'font_min' : font_min,
-						'font_max' : font_max,
-						'icons' : icons })
-		return icons_data
+		return dict({'font_min': font_min, 'font_max': font_max, 'icons': icons})
 
 
 class FontFK( FontFA4 ):	# Fork Awesome, based on Font Awesome 4
@@ -164,24 +160,22 @@ class FontFA5( Font ):	# Font Awesome version 5. Solid and Regular styles (Regul
 	font_fa_style = [ 'solid', 'regular' ]
 
 	@classmethod
-	def get_icons( self, input ):
+	def get_icons(cls, input):
 		icons_data = { }
-		data = yaml.safe_load(input)
-		if data:
+		if data := yaml.safe_load(input):
 			font_min = 'ffff'
 			font_max = '0'
 			icons = []
 			for key in data:
 				item = data[ key ]
 				for style in item[ 'styles' ]:
-					if style in self.font_fa_style:
-						if [ key, item[ 'unicode' ]] not in icons:
-							if item[ 'unicode' ] < font_min:
-								font_min = item[ 'unicode' ]
-							if item[ 'unicode' ] >= font_max:
-								font_max = item[ 'unicode' ]
-							icons.append([ key, item[ 'unicode' ] ])
-			icons_data.update({ 'font_min':font_min, 'font_max':font_max, 'icons':icons })
+					if style in cls.font_fa_style and [key, item['unicode']] not in icons:
+						if item[ 'unicode' ] < font_min:
+							font_min = item[ 'unicode' ]
+						if item[ 'unicode' ] >= font_max:
+							font_max = item[ 'unicode' ]
+						icons.append([ key, item[ 'unicode' ] ])
+			icons_data |= { 'font_min':font_min, 'font_max':font_max, 'icons':icons }
 		return icons_data
 
 
@@ -193,23 +187,22 @@ class FontFA5Brands( FontFA5 ):	# Font Awesome version 5, Brand styles.
 	font_fa_style = [ 'brands' ]
 
 	@classmethod
-	def get_icons( self, input ):
+	def get_icons(cls, input):
 		icons_data = { }
-		data = yaml.safe_load(input)
-		if data:
+		if data := yaml.safe_load(input):
 			font_min = 'ffff'
 			font_max = '0'
 			icons = [ ]
 			for key in data:
 				item = data[ key ]
 				for style in item[ 'styles' ]:
-					if style in self.font_fa_style:
+					if style in cls.font_fa_style:
 						if item[ 'unicode' ] < font_min:
 							font_min = item[ 'unicode' ]
 						if item[ 'unicode' ] >= font_max:
 							font_max = item[ 'unicode' ]
 						icons.append([ key, item[ 'unicode' ]])
-			icons_data.update({ 'font_min':font_min, 'font_max':font_max, 'icons':icons })
+			icons_data |= { 'font_min':font_min, 'font_max':font_max, 'icons':icons }
 		return icons_data
 
 
@@ -221,10 +214,9 @@ class FontMD( Font ):	# Material Design
 	font_file_name_ttf = [[ font_abbr, font_url_ttf[ font_url_ttf.rfind('/')+1: ]]]
 
 	@classmethod
-	def get_icons( self, input ):
+	def get_icons(cls, input):
 		icons_data = {}
-		lines = str.split( input, '\n' )
-		if lines:
+		if lines := str.split(input, '\n'):
 			font_min = 'ffff'
 			font_max = '0'
 			icons = []
@@ -236,9 +228,7 @@ class FontMD( Font ):	# Material Design
 					if words[ 1 ] >= font_max:
 						font_max = words[ 1 ]
 					icons.append( words )
-			icons_data.update({ 'font_min' : font_min,
-								'font_max' : font_max,
-								'icons' : icons })
+			icons_data |= {'font_min': font_min, 'font_max': font_max, 'icons': icons}
 		return icons_data
 
 
@@ -250,11 +240,10 @@ class FontMDI( Font ):	# Material Design Icons
 	font_file_name_ttf = [[ font_abbr, font_url_ttf[ font_url_ttf.rfind('/')+1: ]]]
 
 	@classmethod
-	def get_icons( self, input ):
+	def get_icons(cls, input):
 		icons_data = {}
 		input_trimmed = input[ input.find( '-moz-osx-font-smoothing: grayscale;\n}\n\n' ) + len( '-moz-osx-font-smoothing: grayscale;\n}\n\n' ) : input.find( '.mdi-18px.mdi-set,' )]
-		lines = str.split( input_trimmed, '}\n\n' )
-		if lines:
+		if lines := str.split(input_trimmed, '}\n\n'):
 			font_min = 'ffff'
 			font_max = '0'
 			icons = []
@@ -269,9 +258,7 @@ class FontMDI( Font ):	# Material Design Icons
 						if font_code >= font_max:
 							font_max = font_code
 						icons.append([ font_id, font_code ])
-			icons_data.update({ 'font_min' : font_min,
-								'font_max' : font_max,
-								'icons' : icons  })
+			icons_data |= {'font_min': font_min, 'font_max': font_max, 'icons': icons}
 		return icons_data
 
 
@@ -283,10 +270,9 @@ class FontKI( Font ):	# Kenney Game icons
 	font_file_name_ttf = [[ font_abbr, font_url_ttf[ font_url_ttf.rfind('/')+1: ]]]
 
 	@classmethod
-	def get_icons( self, input ):
+	def get_icons(cls, input):
 		icons_data = {}
-		lines = str.split( input, '\n' )
-		if lines:
+		if lines := str.split(input, '\n'):
 			font_min = 'ffff'
 			font_max = '0'
 			icons = []
@@ -301,9 +287,7 @@ class FontKI( Font ):	# Kenney Game icons
 						if font_code >= font_max:
 							font_max = font_code
 						icons.append([ font_id, font_code ])
-			icons_data.update({ 'font_min' : font_min,
-								'font_max' : font_max,
-								'icons' : icons  })
+			icons_data |= {'font_min': font_min, 'font_max': font_max, 'icons': icons}
 		return icons_data
 
 
@@ -315,10 +299,9 @@ class FontII( Font ):	# Ionicons
 	font_file_name_ttf = [[ font_abbr, font_url_ttf[ font_url_ttf.rfind('/') + 1: ]]]
 
 	@classmethod
-	def get_icons( self, input ):
+	def get_icons(cls, input):
 		icons_data = {}
-		lines = str.split( input, '\n' )
-		if lines:
+		if lines := str.split(input, '\n'):
 			font_min = 'ffff'
 			font_max = '0'
 			icons = []
@@ -333,9 +316,7 @@ class FontII( Font ):	# Ionicons
 						if font_code >= font_max:
 							font_max = font_code
 						icons.append([ font_id, font_code ])
-			icons_data.update({ 'font_min' : font_min,
-								'font_max' : font_max,
-								'icons' : icons  })
+			icons_data |= {'font_min': font_min, 'font_max': font_max, 'icons': icons}
 		return icons_data
 
 
@@ -353,20 +334,17 @@ class Language:
 	@classmethod
 	def prelude( cls ):
 		print('[ ERROR - missing implementation of class method prelude for {!s} ]'.format( cls.language_name ))
-		result = '[ ERROR - missing prelude ]'
-		return result
+		return '[ ERROR - missing prelude ]'
 
 	@classmethod
 	def lines_minmax( cls ):
 		print('[ ERROR - missing implementation of class method lines_minmax for {!s} ]'.format( cls.language_name ))
-		result = '[ ERROR - missing min and max ]'
-		return result
+		return '[ ERROR - missing min and max ]'
 
 	@classmethod
 	def line_icon( cls, icon ):
 		print('[ ERROR - missing implementation of class method line_icon for {!s} ]'.format( cls.language_name ))
-		result = '[ ERROR - missing icon line ]'
-		return result
+		return '[ ERROR - missing icon line ]'
 
 	@classmethod
 	def epilogue( cls ):
@@ -413,13 +391,15 @@ class LanguageC89( Language ):
 	@classmethod
 	def lines_minmax( cls ):
 		tmpl_line_minmax = '#define ICON_{minmax}_{abbr} 0x{val}\n'
-		result = tmpl_line_minmax.format(minmax = 'MIN',
-										 abbr = cls.intermediate.get( 'font_abbr' ),
-										 val = cls.intermediate.get( 'font_min' )) + \
-				 tmpl_line_minmax.format(minmax = 'MAX',
-										 abbr = cls.intermediate.get( 'font_abbr' ),
-										 val = cls.intermediate.get( 'font_max' ))
-		return result
+		return tmpl_line_minmax.format(
+			minmax='MIN',
+			abbr=cls.intermediate.get('font_abbr'),
+			val=cls.intermediate.get('font_min'),
+		) + tmpl_line_minmax.format(
+			minmax='MAX',
+			abbr=cls.intermediate.get('font_abbr'),
+			val=cls.intermediate.get('font_max'),
+		)
 
 	@classmethod
 	def line_icon( cls, icon ):
@@ -427,10 +407,9 @@ class LanguageC89( Language ):
 		icon_name = str.upper( icon[ 0 ]).replace( '-', '_' )
 		code_base = ''.join([ '{0:x}'.format( ord( x )) for x in unichr( int( icon[ 1 ], 16 )).encode( 'utf-8' )]).upper()
 		icon_code = '\\x' + code_base[ :2 ] + '\\x' + code_base[ 2:4 ] + '\\x' + code_base[ 4: ]
-		result = tmpl_line_icon.format( abbr = cls.intermediate.get( 'font_abbr' ),
-										icon = icon_name,
-										code = icon_code )
-		return result
+		return tmpl_line_icon.format(
+			abbr=cls.intermediate.get('font_abbr'), icon=icon_name, code=icon_code
+		)
 
 
 class LanguageCpp11( LanguageC89 ):
@@ -442,10 +421,9 @@ class LanguageCpp11( LanguageC89 ):
 		tmpl_line_icon = '#define ICON_{abbr}_{icon} u8"\u{code}"\n'
 		icon_name = str.upper( icon[ 0 ]).replace( '-', '_' )
 		icon_code = icon[ 1 ]
-		result = tmpl_line_icon.format( abbr = cls.intermediate.get( 'font_abbr' ),
-										icon = icon_name,
-										code = icon_code)
-		return result
+		return tmpl_line_icon.format(
+			abbr=cls.intermediate.get('font_abbr'), icon=icon_name, code=icon_code
+		)
 
 
 class LanguageCSharp( Language ):
@@ -481,11 +459,11 @@ class LanguageCSharp( Language ):
 	@classmethod
 	def lines_minmax( cls ):
 		tmpl_line_minmax = '        public const int Icon{minmax} = 0x{val};\n'
-		result = tmpl_line_minmax.format(minmax = 'Min',
-										 val = cls.intermediate.get( 'font_min' )) + \
-				 tmpl_line_minmax.format(minmax = 'Max',
-										 val = cls.intermediate.get( 'font_max' ))
-		return result
+		return tmpl_line_minmax.format(
+			minmax='Min', val=cls.intermediate.get('font_min')
+		) + tmpl_line_minmax.format(
+			minmax='Max', val=cls.intermediate.get('font_max')
+		)
 
 	@classmethod
 	def line_icon( cls, icon ):
@@ -496,15 +474,13 @@ class LanguageCSharp( Language ):
 
 		if icon_name[ 0 ].isdigit():
 			# Variable may not start with a digit
-			icon_name = 'The' + icon_name
+			icon_name = f'The{icon_name}'
 
 		if icon_name == cls.intermediate.get( 'font_name' ).replace( ' ', '' ):
 			# Member may not have same name as enclosing class
 			icon_name += 'Icon'
 
-		result = tmpl_line_icon.format( icon = icon_name,
-										code = icon_code)
-		return result
+		return tmpl_line_icon.format(icon=icon_name, code=icon_code)
 
 	@classmethod
 	def to_camelcase( cls, text ):
